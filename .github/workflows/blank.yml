@@ -17,7 +17,7 @@ on:
 
 env:
   GLOBAL_CEF_URL:  https://cef-builds.spotifycdn.com
-  BASE_FILE_STUFFIX: tar.bz2.tar
+  # BASE_FILE_STUFFIX: tar.bz2.tar
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 permissions:
   contents: write
@@ -36,27 +36,32 @@ jobs:
       # create dir
       - name: create dir
         run: |
-          BASE_DOWNLOAD_PATH=$(pwd)/source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+          BASE_DOWNLOAD_PATH=./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
           mkdir -p ${BASE_DOWNLOAD_PATH}
+          echo "current path: $(pwd)"
           echo "create success => ${BASE_DOWNLOAD_PATH}"
+          ls ${BASE_DOWNLOAD_PATH}
 
       # Runs a single command using the runners shell
       - name: Download cef source code
         run: |
-          BASE_DOWNLOAD_PATH=$(pwd)/source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-          BASE_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}.${{ env.BASE_FILE_STUFFIX }}
+          BASE_DOWNLOAD_PATH=./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+          BASE_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}.tar.bz2.tar
+          echo "download_to_path => ${BASE_DOWNLOAD_PATH}/${BASE_FILE_NAME}"
           if [ -f "${BASE_DOWNLOAD_PATH}/${BASE_FILE_NAME}" ]; then
             echo "${BASE_FILE_NAME} 已存在，跳过下载"
           else
-            curl -L -o "${BASE_DOWNLOAD_PATH}/${BASE_FILE_NAME}" "${{ env.GLOBAL_CEF_URL }}/${BASE_FILE_NAME}"
+            echo "request url ==> ${{env.GLOBAL_CEF_URL}}/${BASE_FILE_NAME}"
+            curl -L -o "${BASE_DOWNLOAD_PATH}/${BASE_FILE_NAME}" "${{env.GLOBAL_CEF_URL}}/${BASE_FILE_NAME}"
             echo "resource=> ${{ env.GLOBAL_CEF_URL }}/${BASE_FILE_NAME} downloaded"
           fi
           echo "resource path:  ${BASE_DOWNLOAD_PATH}/${BASE_FILE_NAME}"
 
       - name: Download debug cef symbols file
         run: |
-         BASE_DOWNLOAD_PATH=$(pwd)/source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-          BASE_DEBUG_SYMBOLS_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}_debug_symbols.${{ env.BASE_FILE_STUFFIX }}
+         BASE_DOWNLOAD_PATH=./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+          BASE_DEBUG_SYMBOLS_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}_debug_symbols.tar.bz2.tar
+          echo "download_to_path => ${BASE_DOWNLOAD_PATH}/${BASE_DEBUG_SYMBOLS_FILE_NAME}"
           if [ -f "${BASE_DOWNLOAD_PATH}/${BASE_DEBUG_SYMBOLS_FILE_NAME}" ]; then
             echo "${BASE_DEBUG_SYMBOLS_FILE_NAME} 已存在，跳过下载"
           else
@@ -67,8 +72,9 @@ jobs:
 
       - name: Download release cef symbols file
         run: |
-         BASE_DOWNLOAD_PATH=$(pwd)/source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-          BASE_RELEASE_SYMBOLS_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}_release_symbols.${{ env.BASE_FILE_STUFFIX }}
+         BASE_DOWNLOAD_PATH=./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+          BASE_RELEASE_SYMBOLS_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}_release_symbols.tar.bz2.tar
+          echo "download_to_path => ${BASE_DOWNLOAD_PATH}/${BASE_RELEASE_SYMBOLS_FILE_NAME}"
           if [ -f "${BASE_DOWNLOAD_PATH}/${BASE_RELEASE_SYMBOLS_FILE_NAME}" ]; then
             echo "${BASE_RELEASE_SYMBOLS_FILE_NAME} 已存在，跳过下载"
           else
