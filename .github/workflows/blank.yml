@@ -4,15 +4,21 @@ name: CI
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
+  # Allows you to run this workflow manually from the Actions tab, 手动触发
   workflow_dispatch:
+    inputs:
+      cef_version:
+        description: '获取cef 二进制文件版本'
+        required: true
+        default: '108.4.13+ga98cd4c+chromium-108.0.5359.125'
+      platform:
+        description: '平台'
+        required: true
+        default: 'windows32'
 
+env:
+  GLOBAL_CEF_URL:  https://cef-builds.spotifycdn.com
+  BASE_FILE_STUFFIX: tar.bz2.tar
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -25,12 +31,82 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      # Set BASE_FILE_NAME as an environment variable for subsequent steps
+      # - name: Set BASE_FILE_NAME
+      #   run: echo "BASE_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}.${{ env.BASE_FILE_STUFFIX }}" >> $GITHUB_ENV
+      # create dir
+      - name: create dir
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          mkdir -p ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+
+      # Runs a single command using the runners shell
+      - name: Download cef source code
+        run: |
+          BASE_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}.${{ env.BASE_FILE_STUFFIX }}
+          if [ -f "./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}/${BASE_FILE_NAME}" ]; then
+            echo "${BASE_FILE_NAME} 已存在，跳过下载"
+          else
+            curl -L -o "${BASE_FILE_NAME}" "${{ env.GLOBAL_CEF_URL }}/${BASE_FILE_NAME}"
+            echo "${{ env.GLOBAL_CEF_URL }}/${BASE_FILE_NAME} downloaded"
+            mv ${BASE_FILE_NAME} ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+            echo "$(pwd) move to $(pwd)/source success"
+          fi
+
+      - name: Download debug cef symbols file
+        run: |
+          BASE_DEBUG_SYMBOLS_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}_debug_symbols.${{ env.BASE_FILE_STUFFIX }}
+          if [ -f "./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}/${BASE_DEBUG_SYMBOLS_FILE_NAME}" ]; then
+            echo "${BASE_DEBUG_SYMBOLS_FILE_NAME} 已存在，跳过下载"
+          else
+            curl -L -o "${BASE_DEBUG_SYMBOLS_FILE_NAME}" "${{ env.GLOBAL_CEF_URL }}/${BASE_DEBUG_SYMBOLS_FILE_NAME}"
+            mv ${BASE_DEBUG_SYMBOLS_FILE_NAME} ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+            echo "$(pwd) move to $(pwd)/source success"
+          fi
+
+      - name: Download release cef symbols file
+        run: |
+          BASE_RELEASE_SYMBOLS_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}_release_symbols.${{ env.BASE_FILE_STUFFIX }}
+          mkdir -p ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+          if [ -f "./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}/${BASE_RELEASE_SYMBOLS_FILE_NAME}" ]; then
+            echo "${BASE_RELEASE_SYMBOLS_FILE_NAME} 已存在，跳过下载"
+          else
+            curl -L -o "${BASE_RELEASE_SYMBOLS_FILE_NAME}" "${{ env.GLOBAL_CEF_URL }}/${BASE_RELEASE_SYMBOLS_FILE_NAME}"
+            mv ${BASE_RELEASE_SYMBOLS_FILE_NAME} ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+            echo "$(pwd) move to $(pwd)/source success"
+          fi
+
+      - name: Check if tag exists
+        id: check_tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = '${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}';
+            const { data: tags } = await github.rest.repos.listTags({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            const exists = tags.some(t => t.name === tag);
+            core.setOutput('tag_exists', exists);
+      # 创建release
+      - name: Create Release
+        if: steps.check_tag.outputs.tag_exists != 'true'
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+          name: CEF binary ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+          body: |
+            自动下载的 CEF 二进制包和符号文件
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 上传文件到release（仅当tag不存在时）
+      - name: Upload assets to release
+        if: steps.check_tag.outputs.tag_exists != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+          files: ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
