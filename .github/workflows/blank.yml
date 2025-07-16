@@ -17,7 +17,7 @@ on:
 
 env:
   GLOBAL_CEF_URL:  https://cef-builds.spotifycdn.com
-  # BASE_FILE_STUFFIX: tar.bz2.tar
+  # BASE_FILE_STUFFIX: tar.bz2
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 permissions:
   contents: write
@@ -46,7 +46,7 @@ jobs:
       - name: Download cef source code
         run: |
           BASE_DOWNLOAD_PATH=./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-          BASE_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}.tar.bz2.tar
+          BASE_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}.tar.bz2
           echo "download_to_path => ${BASE_DOWNLOAD_PATH}/${BASE_FILE_NAME}"
           if [ -f "${BASE_DOWNLOAD_PATH}/${BASE_FILE_NAME}" ]; then
             echo "${BASE_FILE_NAME} 已存在，跳过下载"
@@ -60,7 +60,7 @@ jobs:
       - name: Download debug cef symbols file
         run: |
          BASE_DOWNLOAD_PATH=./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-          BASE_DEBUG_SYMBOLS_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}_debug_symbols.tar.bz2.tar
+          BASE_DEBUG_SYMBOLS_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}_debug_symbols.tar.bz2
           echo "download_to_path => ${BASE_DOWNLOAD_PATH}/${BASE_DEBUG_SYMBOLS_FILE_NAME}"
           if [ -f "${BASE_DOWNLOAD_PATH}/${BASE_DEBUG_SYMBOLS_FILE_NAME}" ]; then
             echo "${BASE_DEBUG_SYMBOLS_FILE_NAME} 已存在，跳过下载"
@@ -73,7 +73,7 @@ jobs:
       - name: Download release cef symbols file
         run: |
          BASE_DOWNLOAD_PATH=./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-          BASE_RELEASE_SYMBOLS_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}_release_symbols.tar.bz2.tar
+          BASE_RELEASE_SYMBOLS_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}_release_symbols.tar.bz2
           echo "download_to_path => ${BASE_DOWNLOAD_PATH}/${BASE_RELEASE_SYMBOLS_FILE_NAME}"
           if [ -f "${BASE_DOWNLOAD_PATH}/${BASE_RELEASE_SYMBOLS_FILE_NAME}" ]; then
             echo "${BASE_RELEASE_SYMBOLS_FILE_NAME} 已存在，跳过下载"
@@ -97,19 +97,19 @@ jobs:
             });
             const exists = tags.some(t => t.name === tag);
             core.setOutput('tag_exists', exists);
-      # # 创建release
-      # - name: Create Release
-      #   if: steps.check_tag.outputs.tag_exists != 'true'
-      #   id: create_release
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #     tag_name: ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-      #     name: CEF binary ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-      #     body: |
-      #       自动下载的 CEF 二进制包和符号文件
-      #     files: ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}/*
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # 创建release
+      - name: Create Release
+        if: steps.check_tag.outputs.tag_exists != 'true'
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+          name: CEF binary ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+          body: |
+            自动下载的 CEF 二进制包和符号文件
+          files: ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload artifact
         if: steps.check_tag.outputs.tag_exists != 'true'
