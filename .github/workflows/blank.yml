@@ -96,6 +96,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
           name: CEF binary ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             自动下载的 CEF 二进制包和符号文件
         env:
@@ -106,6 +107,7 @@ jobs:
         if: steps.check_tag.outputs.tag_exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
           files: ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}/*
         env:
