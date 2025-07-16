@@ -31,49 +31,47 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      # Set BASE_FILE_NAME as an environment variable for subsequent steps
-      # - name: Set BASE_FILE_NAME
-      #   run: echo "BASE_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}.${{ env.BASE_FILE_STUFFIX }}" >> $GITHUB_ENV
       # create dir
       - name: create dir
         run: |
-          mkdir -p ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+          export BASE_DOWNLOAD_PATH=$(pwd)/source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
+          mkdir -p ${BASE_DOWNLOAD_PATH}
+          echo "create success => ${BASE_DOWNLOAD_PATH}"
 
       # Runs a single command using the runners shell
       - name: Download cef source code
         run: |
           BASE_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}.${{ env.BASE_FILE_STUFFIX }}
-          if [ -f "./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}/${BASE_FILE_NAME}" ]; then
+          if [ -f "${BASE_DOWNLOAD_PATH}/${BASE_FILE_NAME}" ]; then
             echo "${BASE_FILE_NAME} 已存在，跳过下载"
           else
-            curl -L -o "${BASE_FILE_NAME}" "${{ env.GLOBAL_CEF_URL }}/${BASE_FILE_NAME}"
-            echo "${{ env.GLOBAL_CEF_URL }}/${BASE_FILE_NAME} downloaded"
-            mv ${BASE_FILE_NAME} ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-            echo "$(pwd) move to $(pwd)/source success"
+            curl -L -o "${BASE_DOWNLOAD_PATH}/${BASE_FILE_NAME}" "${{ env.GLOBAL_CEF_URL }}/${BASE_FILE_NAME}"
+            echo "resource=> ${{ env.GLOBAL_CEF_URL }}/${BASE_FILE_NAME} downloaded"
           fi
+          echo "resource path:  ${BASE_DOWNLOAD_PATH}/${BASE_FILE_NAME}"
 
       - name: Download debug cef symbols file
         run: |
           BASE_DEBUG_SYMBOLS_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}_debug_symbols.${{ env.BASE_FILE_STUFFIX }}
-          if [ -f "./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}/${BASE_DEBUG_SYMBOLS_FILE_NAME}" ]; then
+          if [ -f "${BASE_DOWNLOAD_PATH}/${BASE_DEBUG_SYMBOLS_FILE_NAME}" ]; then
             echo "${BASE_DEBUG_SYMBOLS_FILE_NAME} 已存在，跳过下载"
           else
-            curl -L -o "${BASE_DEBUG_SYMBOLS_FILE_NAME}" "${{ env.GLOBAL_CEF_URL }}/${BASE_DEBUG_SYMBOLS_FILE_NAME}"
-            mv ${BASE_DEBUG_SYMBOLS_FILE_NAME} ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-            echo "$(pwd) move to $(pwd)/source success"
+            curl -L -o "${BASE_DOWNLOAD_PATH}/${BASE_DEBUG_SYMBOLS_FILE_NAME}" "${{ env.GLOBAL_CEF_URL }}/${BASE_DEBUG_SYMBOLS_FILE_NAME}"
+            echo "resource=> ${{ env.GLOBAL_CEF_URL }}/${BASE_DEBUG_SYMBOLS_FILE_NAME} downloaded"
           fi
+          echo "resource path:   ${BASE_DOWNLOAD_PATH}/${BASE_DEBUG_SYMBOLS_FILE_NAME}"
 
       - name: Download release cef symbols file
         run: |
           BASE_RELEASE_SYMBOLS_FILE_NAME=cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}_release_symbols.${{ env.BASE_FILE_STUFFIX }}
-          mkdir -p ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-          if [ -f "./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}/${BASE_RELEASE_SYMBOLS_FILE_NAME}" ]; then
+          if [ -f "${BASE_DOWNLOAD_PATH}/${BASE_RELEASE_SYMBOLS_FILE_NAME}" ]; then
             echo "${BASE_RELEASE_SYMBOLS_FILE_NAME} 已存在，跳过下载"
           else
-            curl -L -o "${BASE_RELEASE_SYMBOLS_FILE_NAME}" "${{ env.GLOBAL_CEF_URL }}/${BASE_RELEASE_SYMBOLS_FILE_NAME}"
-            mv ${BASE_RELEASE_SYMBOLS_FILE_NAME} ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-            echo "$(pwd) move to $(pwd)/source success"
+            curl -L -o "${BASE_DOWNLOAD_PATH}/${BASE_RELEASE_SYMBOLS_FILE_NAME}" "${{ env.GLOBAL_CEF_URL }}/${BASE_RELEASE_SYMBOLS_FILE_NAME}"
+            echo "resource=> ${{ env.GLOBAL_CEF_URL }}/${BASE_RELEASE_SYMBOLS_FILE_NAME} downloaded"
           fi
+          ls
+          echo "resource path:   ${BASE_DOWNLOAD_PATH}/${BASE_RELEASE_SYMBOLS_FILE_NAME}"
 
       - name: Check if tag exists
         id: check_tag
@@ -88,6 +86,7 @@ jobs:
             });
             const exists = tags.some(t => t.name === tag);
             core.setOutput('tag_exists', exists);
+            ls ${BASE_DOWNLOAD_PATH}
       # 创建release
       - name: Create Release
         if: steps.check_tag.outputs.tag_exists != 'true'
@@ -107,6 +106,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-          files: ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}/*
+          files: ${BASE_DOWNLOAD_PATH}/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
