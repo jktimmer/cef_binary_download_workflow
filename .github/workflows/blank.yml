@@ -1,6 +1,5 @@
 # This is a basic workflow to help you get started with Actions
-
-name: CI
+name: DownLoad CEF CI
 
 # Controls when the workflow will run
 on:
@@ -22,10 +21,11 @@ env:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  build:
+  download:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -96,7 +96,6 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
           name: CEF binary ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
-          token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             自动下载的 CEF 二进制包和符号文件
         env:
@@ -107,7 +106,6 @@ jobs:
         if: steps.check_tag.outputs.tag_exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}
           files: ./source/cef_binary_${{ github.event.inputs.cef_version }}_${{ github.event.inputs.platform }}/*
         env:
